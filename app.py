@@ -22,6 +22,7 @@ def load_global_persona_notes(file_path):
         return file.read().strip()
 
 def main():
+
     """
     Main entry point of the Streamlit chat application with persona card selection.
     """
@@ -29,7 +30,8 @@ def main():
     load_dotenv()
 
     # Retrieve API Key from .env file
-    groq_api_key = os.getenv('GROQ_API_KEY')
+    # groq_api_key = os.getenv('GROQ_API_KEY')
+    groq_api_key = st.secrets["GROQ_API_KEY"]
     if not groq_api_key:
         st.error("API key not found. Please check your .env file.")
 
