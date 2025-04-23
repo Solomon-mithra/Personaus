@@ -8,28 +8,33 @@ from langchain_core.messages import SystemMessage
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_groq import ChatGroq
 import json
+from dotenv import load_dotenv
+import os
 
 def load_personas(file_path):
     """Load persona data from a text file"""
     with open(file_path, 'r', encoding='utf-8') as file:
         return json.load(file)
 
+def load_global_persona_notes(file_path):
+    """Load global persona notes from a text file"""
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return file.read().strip()
+
 def main():
 
-    hide_streamlit_style = 
-    """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    </style>
-
-    """
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
     """
     Main entry point of the Streamlit chat application with persona card selection.
     """
-    # API Key (replace with your secure method)
-    groq_api_key = 'API_Key'
+    # Load environment variables
+    load_dotenv()
+
+    # Retrieve API Key from .env file
+    # groq_api_key = os.getenv('GROQ_API_KEY')
+    groq_api_key = st.secrets["GROQ_API_KEY"]
+    if not groq_api_key:
+        st.error("API key not found. Please check your .env file.")
+
     model = 'llama3-8b-8192'  # Hardcoded model
     memory_length = 5  # Hardcoded conversational memory length
 
@@ -37,8 +42,9 @@ def main():
     st.markdown("<h1 style='text-align: center;'>Personas</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; margin-top:-20px;opacity:50%'>Therapy personas to simulate real client interactions and responses.</p>", unsafe_allow_html=True)
 
-    # Load personas from file
+    # Load personas and global persona notes from files
     personas = load_personas("personas.txt")
+    global_persona_notes = load_global_persona_notes("globalPersonaNote.txt")
 
     # Card Selection
     st.sidebar.header("Select a Persona")
@@ -47,6 +53,9 @@ def main():
 
     # Fetch the corresponding prompt
     selected_prompt = next(p["prompt"] for p in personas[selected_category] if p["name"] == selected_persona)
+
+    # Append global persona notes
+    full_prompt = f"{selected_prompt}\n\n{global_persona_notes}"
 
     # Clear chat and memory if persona changes
     if 'current_persona' not in st.session_state or st.session_state.current_persona != selected_persona:
@@ -70,7 +79,7 @@ def main():
     # Process user input
     if user_input:
         prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content=selected_prompt),
+            SystemMessage(content=full_prompt),
             MessagesPlaceholder(variable_name="chat_history"),
             HumanMessagePromptTemplate.from_template("{human_input}")
         ])

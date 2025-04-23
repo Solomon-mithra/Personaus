@@ -12,20 +12,17 @@ from langchain_core.messages import SystemMessage
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_groq import ChatGroq
 
-# Backend URL for verifying Firebase token
+# 🔒 Backend endpoint to verify Firebase ID token
 BACKEND_VERIFY_URL = "https://personaus-auth-backend-production.up.railway.app/verify-token"
 
-# Load personas
 def load_personas(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         return json.load(file)
 
-# Load global notes
 def load_global_persona_notes(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         return file.read().strip()
 
-# Verify token with FastAPI backend
 def verify_token(id_token):
     try:
         res = requests.post(BACKEND_VERIFY_URL, json={"idToken": id_token})
@@ -37,14 +34,10 @@ def verify_token(id_token):
         return None
 
 def main():
-    st.set_page_config(page_title="Personaus", layout="centered")
     load_dotenv()
 
-    # Step 1: Get token from query params
-    query_params = st.experimental_get_query_params()
-    token = query_params.get("token", [None])[0]
-
-    # Step 2: Verify token once per session
+    # ✅ NEW: Get token from query and verify once
+    token = st.query_params.get("token")
     if token and "id_token" not in st.session_state:
         email = verify_token(token)
         if email:
@@ -54,7 +47,6 @@ def main():
             st.error("❌ Unauthorized access. Please sign in again.")
             st.stop()
 
-    # Step 3: Redirect to login if not logged in
     if "id_token" not in st.session_state:
         auth_url = "https://personaus-auth.up.railway.app"
         st.markdown(f"""
@@ -64,11 +56,10 @@ def main():
         """, unsafe_allow_html=True)
         st.stop()
 
-    # Step 4: Proceed to chat
-    groq_api_key = st.secrets.get("GROQ_API_KEY")
+    # ✅ ORIGINAL FUNCTIONALITY BELOW
+    groq_api_key = st.secrets["GROQ_API_KEY"]
     if not groq_api_key:
-        st.error("Missing GROQ_API_KEY in Streamlit secrets.")
-        st.stop()
+        st.error("API key not found. Please check your .env file.")
 
     model = 'llama3-8b-8192'
     memory_length = 5
@@ -82,6 +73,7 @@ def main():
     st.sidebar.header("Select a Persona")
     selected_category = st.sidebar.selectbox("Choose Category:", list(personas.keys()))
     selected_persona = st.sidebar.radio("Choose Persona:", [p["name"] for p in personas[selected_category]])
+
     selected_prompt = next(p["prompt"] for p in personas[selected_category] if p["name"] == selected_persona)
     full_prompt = f"{selected_prompt}\n\n{global_persona_notes}"
 
@@ -105,6 +97,7 @@ def main():
             MessagesPlaceholder(variable_name="chat_history"),
             HumanMessagePromptTemplate.from_template("{human_input}")
         ])
+
         conversation = prompt | groq_chat
         response = conversation.invoke({
             "chat_history": st.session_state.chat_history,
@@ -116,8 +109,12 @@ def main():
         st.session_state.chat_history.append({"role": "assistant", "content": response_content})
 
     for message in st.session_state.chat_history:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        if message["role"] == "user":
+            with st.chat_message("user"):
+                st.markdown(message["content"])
+        elif message["role"] == "assistant":
+            with st.chat_message("assistant"):
+                st.markdown(message["content"])
 
 if __name__ == "__main__":
     main()
