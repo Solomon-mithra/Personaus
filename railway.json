@@ -1,0 +1,6 @@
+{
+    "build": {
+      "start": "streamlit run your_app.py"
+    }
+  }
+  
