@@ -36,25 +36,6 @@ def verify_token(id_token):
 def main():
     load_dotenv()
 
-    # ✅ NEW: Get token from query and verify once
-    token = st.query_params.get("token")
-    if token and "id_token" not in st.session_state:
-        email = verify_token(token)
-        if email:
-            st.session_state["id_token"] = token
-            st.session_state["user_email"] = email
-        else:
-            st.error("❌ Unauthorized access. Please sign in again.")
-            st.stop()
-
-    if "id_token" not in st.session_state:
-        auth_url = "https://personaus-auth.up.railway.app"
-        st.markdown(f"""
-            <meta http-equiv="refresh" content="0; url={auth_url}" />
-            <h4>🔐 Redirecting to login page...</h4>
-            <p>If you're not redirected, <a href="{auth_url}">click here</a>.</p>
-        """, unsafe_allow_html=True)
-        st.stop()
 
     # ✅ ORIGINAL FUNCTIONALITY BELOW
     groq_api_key = st.secrets["GROQ_API_KEY"]
