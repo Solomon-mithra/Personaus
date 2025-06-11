@@ -1,4 +1,3 @@
 langchain==0.3.13
 streamlit==1.41.1
-python-dotenv
-langchain-groq
+dotenv
