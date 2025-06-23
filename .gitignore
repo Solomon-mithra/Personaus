@@ -1,3 +1,4 @@
 .env
-.streamlit
-# Ignore Python cache files 
+.streamlit/
+.toml
+# Ignore Python cache files
